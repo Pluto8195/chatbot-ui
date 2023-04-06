@@ -1,6 +1,6 @@
 import { SupportedExportFormats } from '@/types/export';
 import { PluginKey } from '@/types/plugin';
-import { IconFileExport, IconMoon, IconSun } from '@tabler/icons-react';
+import { IconFileExport, IconMoon, IconSun, IconUser } from '@tabler/icons-react';
 import { useTranslation } from 'next-i18next';
 import { FC } from 'react';
 import { Import } from '../Settings/Import';
@@ -8,6 +8,7 @@ import { Key } from '../Settings/Key';
 import { SidebarButton } from '../Sidebar/SidebarButton';
 import { ClearConversations } from './ClearConversations';
 import { PluginKeys } from './PluginKeys';
+import Link from 'next/link';
 
 interface Props {
   lightMode: 'light' | 'dark';
@@ -65,6 +66,15 @@ export const ChatbarSettings: FC<Props> = ({
           onToggleLightMode(lightMode === 'light' ? 'dark' : 'light')
         }
       />
+      <SidebarButton
+        text={'Logout'}
+        icon={
+          <IconUser size={18}/>
+        }
+        onClick={() => {
+          window.location.href = '/api/auth/logout';
+        }}
+      />
 
       {!(serverSideApiKeyIsSet) ? (
         <Key apiKey={apiKey} onApiKeyChange={onApiKeyChange} />
@@ -77,6 +87,8 @@ export const ChatbarSettings: FC<Props> = ({
           onClearPluginKey={onClearPluginKey}
         />
       ) : null}
+
+      
     </div>
   );
 };

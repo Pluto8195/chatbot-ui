@@ -2,6 +2,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 
 const Login = () => {
+  
   return (
     <>
       <Head>

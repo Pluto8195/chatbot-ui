@@ -30,13 +30,16 @@ import { saveFolders } from '@/utils/app/folders';
 import { exportData, importData } from '@/utils/app/importExport';
 import { savePrompts } from '@/utils/app/prompts';
 import { IconArrowBarLeft, IconArrowBarRight } from '@tabler/icons-react';
-import { GetServerSideProps } from 'next';
+import { GetServerSideProps, GetServerSidePropsContext, GetServerSidePropsResult } from 'next';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
+import { useUser } from '@auth0/nextjs-auth0/client';
+import { getSession } from '@auth0/nextjs-auth0';
+import Login from '@/pages/login';
 
 interface HomeProps {
   serverSideApiKeyIsSet: boolean;
@@ -49,6 +52,20 @@ const Home: React.FC<HomeProps> = ({
   serverSidePluginKeysSet,
   defaultModelId,
 }) => {
+  const { user, isLoading } = useUser();
+
+
+
+  useEffect(() => {
+    console.log('user', user, isLoading)
+    if (isLoading) return;
+    // if user is not logged in, redirect to login page
+    if (!user) {
+      console.log('user is not logged in, redirecting to login page')
+      window.location.href = '/login';
+    }
+  }, [user, isLoading]);
+
   const { t } = useTranslation('chat');
 
   // STATE ----------------------------------------------
@@ -732,6 +749,16 @@ const Home: React.FC<HomeProps> = ({
     }
   }, [serverSideApiKeyIsSet]);
 
+
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
   return (
     <>
       <Head>
@@ -860,36 +887,48 @@ const Home: React.FC<HomeProps> = ({
 };
 export default Home;
 
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
-  const defaultModelId =
-    (process.env.DEFAULT_MODEL &&
-      Object.values(OpenAIModelID).includes(
-        process.env.DEFAULT_MODEL as OpenAIModelID,
-      ) &&
-      process.env.DEFAULT_MODEL) ||
-    fallbackModelID;
+export const getServerSideProps: GetServerSideProps = async (context) => {
+    const session = getSession(context.req, context.res);
+    if (!session) {
+        return {
+            redirect: {
+                destination: '/api/auth/login',
+                permanent: false,
+            },
+        };
+    }
 
-  let serverSidePluginKeysSet = false;
+    const { locale } = context;
 
-  const googleApiKey = process.env.GOOGLE_API_KEY;
-  const googleCSEId = process.env.GOOGLE_CSE_ID;
+    const defaultModelId =
+        (process.env.DEFAULT_MODEL &&
+            Object.values(OpenAIModelID).includes(
+                process.env.DEFAULT_MODEL as OpenAIModelID,
+            ) &&
+            process.env.DEFAULT_MODEL) ||
+        fallbackModelID;
 
-  if (googleApiKey && googleCSEId) {
-    serverSidePluginKeysSet = true;
-  }
+    let serverSidePluginKeysSet = false;
 
-  return {
-    props: {
-      serverSideApiKeyIsSet: !!process.env.OPENAI_API_KEY,
-      defaultModelId,
-      serverSidePluginKeysSet,
-      ...(await serverSideTranslations(locale ?? 'en', [
-        'common',
-        'chat',
-        'sidebar',
-        'markdown',
-        'promptbar',
-      ])),
-    },
-  };
+    const googleApiKey = process.env.GOOGLE_API_KEY;
+    const googleCSEId = process.env.GOOGLE_CSE_ID;
+
+    if (googleApiKey && googleCSEId) {
+        serverSidePluginKeysSet = true;
+    }
+
+    return {
+        props: {
+            serverSideApiKeyIsSet: !!process.env.OPENAI_API_KEY,
+            defaultModelId,
+            serverSidePluginKeysSet,
+            ...(await serverSideTranslations(locale ?? 'en', [
+                'common',
+                'chat',
+                'sidebar',
+                'markdown',
+                'promptbar',
+            ])),
+        },
+    };
 };
